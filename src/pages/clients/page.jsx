@@ -454,6 +454,7 @@ export default function ClientsPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState('');
+  const [isActiveFilter, setIsActiveFilter] = useState('1');
   const [orderBy, setOrderBy] = useState('id');
   const [order, setOrder] = useState('DESC');
   const [totalRecords, setTotalRecords] = useState(0);
@@ -505,7 +506,7 @@ export default function ClientsPage() {
     }
   }, []);
 
-  const fetchClients = async (p = page, l = limit, s = search, ob = orderBy, o = order) => {
+  const fetchClients = async (p = page, l = limit, s = search, ob = orderBy, o = order, active = isActiveFilter) => {
     setLoading(true);
     setError(null);
     try {
@@ -519,6 +520,9 @@ export default function ClientsPage() {
 
       if (s && s.trim() !== '') {
         params.search = s.trim();
+      }
+      if (active !== 'all' && active !== '') {
+        params.is_active = active;
       }
 
       const queryParams = new URLSearchParams(params).toString();
@@ -561,10 +565,10 @@ export default function ClientsPage() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchClients(page, limit, search, orderBy, order);
+      fetchClients(page, limit, search, orderBy, order, isActiveFilter);
     }, 300);
     return () => clearTimeout(timer);
-  }, [page, limit, search, orderBy, order]);
+  }, [page, limit, search, orderBy, order, isActiveFilter]);
 
   const handleSettingChange = (e) => {
     const { name, value } = e.target;
@@ -655,17 +659,33 @@ export default function ClientsPage() {
             </Select>
             <span>entries</span>
           </Box>
-          <TextField
-            size="small"
-            placeholder="Search Client, PF or ESIC"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            InputProps={{
-              startAdornment: <InputAdornment position="start" sx={{ ml: 1 }}><SearchIcon fontSize="small" /></InputAdornment>,
-              sx: { height: 36, bgcolor: '#fff', fontSize: '0.85rem' }
-            }}
-            sx={{ width: 260 }}
-          />
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel id="status-filter-label">Status</InputLabel>
+              <Select
+                labelId="status-filter-label"
+                value={isActiveFilter}
+                label="Status"
+                onChange={(e) => { setIsActiveFilter(e.target.value); setPage(1); }}
+                sx={{ height: 36, bgcolor: '#fff' }}
+              >
+                <MenuItem value="all">All</MenuItem>
+                <MenuItem value="1">Active</MenuItem>
+                <MenuItem value="0">Inactive</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              size="small"
+              placeholder="Search Client, PF or ESIC"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              InputProps={{
+                startAdornment: <InputAdornment position="start" sx={{ ml: 1 }}><SearchIcon fontSize="small" /></InputAdornment>,
+                sx: { height: 36, bgcolor: '#fff', fontSize: '0.85rem' }
+              }}
+              sx={{ width: 260 }}
+            />
+          </Box>
         </Box>
 
         <div style={{ overflowX: 'auto', border: `1px solid ${theme.palette.divider}`, borderRadius: '4px' }}>

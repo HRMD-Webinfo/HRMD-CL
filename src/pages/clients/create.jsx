@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, IconButton, TextField, Typography, Paper, Grid } from '@mui/material';
+import { Box, Button, IconButton, TextField, Typography, Paper, Grid, Switch, FormControlLabel } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 
@@ -12,6 +12,7 @@ export default function CreateClientPage() {
     content_no: '',
     content_name: '',
     email_id: '',
+    is_active: true,
   });
 
   const [credentials, setCredentials] = useState([]);
@@ -187,6 +188,19 @@ export default function CreateClientPage() {
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField label="Email ID" type="email" name="email_id" value={formData.email_id} onChange={handleInputChange} fullWidth size="small" error={!!formErrors.email_id} helperText={formErrors.email_id} />
+          </Grid>
+          <Grid item xs={12} sm={6} sx={{ display: 'flex', alignItems: 'center' }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                  name="is_active"
+                  color="primary"
+                />
+              }
+              label="Is Active"
+            />
           </Grid>
         </Grid>
 

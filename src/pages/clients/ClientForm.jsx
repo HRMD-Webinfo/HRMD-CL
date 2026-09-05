@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Box, Button, IconButton, TextField, Typography, Paper, Grid, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Box, Button, IconButton, TextField, Typography, Paper, Grid, Select, MenuItem, FormControl, InputLabel, Switch, FormControlLabel } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
@@ -18,6 +18,7 @@ export default function ClientForm({ mode }) {
     content_no: '',
     content_name: '',
     email_id: '',
+    is_active: true,
   });
 
   const [credentials, setCredentials] = useState([]);
@@ -71,6 +72,7 @@ export default function ClientForm({ mode }) {
             content_no: client.content_no || '',
             content_name: client.content_name || '',
             email_id: client.email_id || '',
+            is_active: client.is_active === 1 || client.is_active === true,
         });
         
         if (client.credentials && client.credentials.length > 0) {
@@ -288,6 +290,22 @@ export default function ClientForm({ mode }) {
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField label="Email ID" type="email" name="email_id" value={formData.email_id} onChange={handleInputChange} fullWidth size="small" InputProps={{ readOnly: isView }} variant={isView ? "filled" : "outlined"} error={!!formErrors.email_id} helperText={formErrors.email_id} />
+          </Grid>
+          <Grid item xs={12} sm={6} sx={{ display: 'flex', alignItems: 'center' }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={!!formData.is_active}
+                  onChange={(e) => {
+                    if (!isView) setFormData(prev => ({ ...prev, is_active: e.target.checked }));
+                  }}
+                  name="is_active"
+                  color="primary"
+                  disabled={isView}
+                />
+              }
+              label="Is Active"
+            />
           </Grid>
         </Grid>
 
