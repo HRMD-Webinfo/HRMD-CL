@@ -83,7 +83,12 @@ app.whenReady().then(() => {
             launchOptions.executablePath = selectedBrowser.path;
         }
 
+        let context, page;
+
         if (mode === 'incognito') {
+            const os = require('os');
+            const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-incognito-'));
+            
             if (selectedBrowser.id === 'firefox') {
                 launchOptions.args.push('--private-window');
             } else if (selectedBrowser.id === 'edge') {
@@ -91,11 +96,18 @@ app.whenReady().then(() => {
             } else {
                 launchOptions.args.push('--incognito');
             }
+            
+            context = await browserType.launchPersistentContext(tempDir, launchOptions);
+            page = context.pages().length > 0 ? context.pages()[0] : await context.newPage();
+            
+            context.on('close', () => {
+                try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (e) {}
+            });
+        } else {
+            const browser = await browserType.launch(launchOptions);
+            context = await browser.newContext();
+            page = await context.newPage();
         }
-
-        const browser = await browserType.launch(launchOptions);
-        const context = await browser.newContext();
-        const page = await context.newPage();
         try {
             await page.goto(link.startsWith('http') ? link : `https://${link}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
         } catch (gotoErr) {
