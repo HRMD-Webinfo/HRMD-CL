@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://192.168.29.157:3001',
+        target: 'https://billing.hrmdpayrollsoftware.com',
         changeOrigin: true,
       }
     }
