@@ -9,6 +9,7 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'https://billing.hrmdpayrollsoftware.com',
+        // target: 'http://localhost:3001',
         changeOrigin: true,
       }
     }
