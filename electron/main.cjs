@@ -73,7 +73,7 @@ app.whenReady().then(() => {
         const selectedBrowser = browsersList.find(b => b.id === engine) || browsersList.find(b => b.path !== 'bundled') || browsersList[0];
         
         let browserType = playwright.chromium;
-        const launchOptions = { headless: false, args: [] };
+        const launchOptions = { headless: false, args: ['--start-maximized'] };
         
         if (selectedBrowser.id === 'firefox') {
             browserType = playwright.firefox;
@@ -97,7 +97,7 @@ app.whenReady().then(() => {
                 launchOptions.args.push('--incognito');
             }
             
-            context = await browserType.launchPersistentContext(tempDir, launchOptions);
+            context = await browserType.launchPersistentContext(tempDir, { ...launchOptions, viewport: null });
             page = context.pages().length > 0 ? context.pages()[0] : await context.newPage();
             
             context.on('close', () => {
@@ -105,7 +105,7 @@ app.whenReady().then(() => {
             });
         } else {
             const browser = await browserType.launch(launchOptions);
-            context = await browser.newContext();
+            context = await browser.newContext({ viewport: null });
             page = await context.newPage();
         }
         try {

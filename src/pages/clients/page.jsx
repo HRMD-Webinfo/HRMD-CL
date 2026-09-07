@@ -16,6 +16,7 @@ import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import CloseIcon from '@mui/icons-material/Close';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import { API_BASE } from '../../config';
 
 const normalizeUrl = (url) => {
@@ -455,6 +456,9 @@ export default function ClientsPage() {
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState('');
   const [isActiveFilter, setIsActiveFilter] = useState('1');
+  const [portalNameFilter, setPortalNameFilter] = useState('');
+  const [availablePortals, setAvailablePortals] = useState([]);
+  const [filterAnchorEl, setFilterAnchorEl] = useState(null);
   const [orderBy, setOrderBy] = useState('id');
   const [order, setOrder] = useState('DESC');
   const [totalRecords, setTotalRecords] = useState(0);
@@ -486,6 +490,18 @@ export default function ClientsPage() {
 
   useEffect(() => {
     fetchQuickPortals();
+    
+    const fetchPortalsList = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_BASE}/api/portals`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data) setAvailablePortals(json.data);
+        }
+      } catch (err) {}
+    };
+    fetchPortalsList();
 
     // Load Settings
     const savedSettings = localStorage.getItem('automation_settings');
@@ -506,7 +522,7 @@ export default function ClientsPage() {
     }
   }, []);
 
-  const fetchClients = async (p = page, l = limit, s = search, ob = orderBy, o = order, active = isActiveFilter) => {
+  const fetchClients = async (p = page, l = limit, s = search, ob = orderBy, o = order, active = isActiveFilter, portalFilt = portalNameFilter) => {
     setLoading(true);
     setError(null);
     try {
@@ -523,6 +539,9 @@ export default function ClientsPage() {
       }
       if (active !== 'all' && active !== '') {
         params.is_active = active;
+      }
+      if (portalFilt && portalFilt !== 'all' && portalFilt !== '') {
+        params.portal_name = portalFilt;
       }
 
       const queryParams = new URLSearchParams(params).toString();
@@ -565,10 +584,10 @@ export default function ClientsPage() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchClients(page, limit, search, orderBy, order, isActiveFilter);
+      fetchClients(page, limit, search, orderBy, order, isActiveFilter, portalNameFilter);
     }, 300);
     return () => clearTimeout(timer);
-  }, [page, limit, search, orderBy, order, isActiveFilter]);
+  }, [page, limit, search, orderBy, order, isActiveFilter, portalNameFilter]);
 
   const handleSettingChange = (e) => {
     const { name, value } = e.target;
@@ -674,6 +693,7 @@ export default function ClientsPage() {
                 <MenuItem value="0">Inactive</MenuItem>
               </Select>
             </FormControl>
+
             <TextField
               size="small"
               placeholder="Search Client, PF or ESIC"
@@ -695,17 +715,32 @@ export default function ClientsPage() {
                 <th onClick={() => handleSort('client_name')} style={{ cursor: 'pointer', padding: '10px 12px', width: '22%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>Client Name {renderSortIcon('client_name')}</Box>
                 </th>
-                <th style={{ padding: '10px 12px', width: '15%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>PF Username</Box>
+                <th onClick={() => handleSort('pf_username')} style={{ cursor: 'pointer', padding: '10px 12px', width: '15%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>PF Username {renderSortIcon('pf_username')}</Box>
                 </th>
-                <th style={{ padding: '10px 12px', width: '15%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>ESIC Username</Box>
+                <th onClick={() => handleSort('esic_username')} style={{ cursor: 'pointer', padding: '10px 12px', width: '15%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>ESIC Username {renderSortIcon('esic_username')}</Box>
                 </th>
                 <th onClick={() => handleSort('content_no')} style={{ cursor: 'pointer', padding: '10px 12px', width: '15%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>Contact No. {renderSortIcon('content_no')}</Box>
                 </th>
                 <th style={{ padding: '10px 12px', width: '23%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>Links</Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    Links
+                    <IconButton size="small" onClick={(e) => setFilterAnchorEl(e.currentTarget)} sx={{ ml: 1, padding: '2px' }}>
+                      <FilterListIcon fontSize="small" sx={{ color: (portalNameFilter && portalNameFilter !== 'all') ? 'primary.main' : 'text.disabled' }} />
+                    </IconButton>
+                  </Box>
+                  <Menu
+                    anchorEl={filterAnchorEl}
+                    open={Boolean(filterAnchorEl)}
+                    onClose={() => setFilterAnchorEl(null)}
+                  >
+                    <MenuItem onClick={() => { setPortalNameFilter('all'); setPage(1); setFilterAnchorEl(null); }} selected={portalNameFilter === 'all' || portalNameFilter === ''}>All Portals</MenuItem>
+                    {availablePortals.map((portal, idx) => (
+                      <MenuItem key={idx} onClick={() => { setPortalNameFilter(portal); setPage(1); setFilterAnchorEl(null); }} selected={portalNameFilter === portal}>{portal}</MenuItem>
+                    ))}
+                  </Menu>
                 </th>
                 <th style={{ padding: '10px 12px', width: '10%', color: theme.palette.text.primary, fontWeight: 600, textAlign: 'center' }}>Action</th>
               </tr>
