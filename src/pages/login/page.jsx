@@ -1,19 +1,41 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './page.css';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { API_BASE } from '../../config';
+import {
+  Box,
+  Button,
+  Container,
+  TextField,
+  Typography,
+  Alert,
+  Paper,
+  Link,
+  Grid
+} from '@mui/material';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showForceLogoutPrompt, setShowForceLogoutPrompt] = useState(false);
   
   const navigate = useNavigate();
 
+  const handleUsernameChange = (e) => {
+    setUsername(e.target.value);
+    if (fieldErrors.username) setFieldErrors(prev => ({ ...prev, username: null }));
+  };
+
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
+    if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: null }));
+  };
+
   const performLogin = async () => {
     setError(null);
+    setFieldErrors({});
     setLoading(true);
 
     try {
@@ -22,22 +44,38 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ source: 'desktop', username, password }),
       });
 
       const result = await response.json();
 
       if (response.ok) {
-        // Save token and user info
-        localStorage.setItem('token', result.data.token);
-        localStorage.setItem('user', JSON.stringify(result.data.user));
+        // Safely extract token and user
+        const token = result.data?.token || result.token || '';
+        const user = result.data?.user || result.user || {};
         
-        // Redirect to clients page
+        // Save token and user info
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        // Redirect to clients dashboard
         navigate('/clients');
       } else if (response.status === 409) {
         setShowForceLogoutPrompt(true);
       } else {
-        setError(result.message || 'Login failed. Please try again.');
+        if (result.errors) {
+          const formattedErrors = { ...result.errors };
+          if (formattedErrors.mobileNumber) formattedErrors.username = formattedErrors.mobileNumber;
+          if (formattedErrors.phone_number) formattedErrors.username = formattedErrors.phone_number;
+          if (formattedErrors.email) formattedErrors.username = formattedErrors.email;
+          setFieldErrors(formattedErrors);
+        }
+        
+        let errMsg = result.message || 'Login failed. Please check the fields below.';
+        if (typeof errMsg === 'object') {
+            errMsg = errMsg.message || errMsg.error || JSON.stringify(errMsg);
+        }
+        setError(String(errMsg));
       }
     } catch (err) {
       setError('Network error. Please check if the server is running.');
@@ -53,6 +91,7 @@ export default function LoginPage() {
 
   const handleForceLogout = async () => {
     setError(null);
+    setFieldErrors({});
     setLoading(true);
     
     try {
@@ -61,7 +100,7 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ source: 'desktop', username, password }),
       });
 
       if (response.ok) {
@@ -71,7 +110,9 @@ export default function LoginPage() {
         let errorMsg = 'Force logout failed. Please try again.';
         try {
             const result = await response.json();
-            if (result.message) errorMsg = result.message;
+            if (result.message) {
+                errorMsg = typeof result.message === 'object' ? JSON.stringify(result.message) : String(result.message);
+            }
         } catch(e) {}
         setError(errorMsg);
         setShowForceLogoutPrompt(false);
@@ -80,84 +121,109 @@ export default function LoginPage() {
       setError('Network error during force logout.');
       setShowForceLogoutPrompt(false);
     } finally {
-      // Note: we don't setLoading(false) here if performLogin is called and still executing, 
-      // but performLogin has its own finally block that will set it to false.
-      if (!response?.ok) {
-          setLoading(false);
-      }
+      setLoading(false);
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h1 className="login-title">Welcome Back</h1>
-        <p className="login-subtitle">Sign in to your account</p>
-        
-        {error && <div className="error-message">{error}</div>}
-        
-        {showForceLogoutPrompt ? (
-          <div style={{ textAlign: 'center', background: '#f8fafc', padding: '1.5rem', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '1rem' }}>
-            <p style={{ color: '#334155', marginBottom: '1.5rem', fontSize: '0.95rem', lineHeight: '1.5', fontWeight: 500 }}>
-              You are already logged in on another device. Would you like to log out of the other device and log in here?
-            </p>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button 
-                onClick={() => {
-                    setShowForceLogoutPrompt(false);
-                    setError(null);
-                }} 
-                className="login-btn" 
-                style={{ background: '#e2e8f0', color: '#475569', marginTop: 0, boxShadow: 'none' }}
-                disabled={loading}
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleForceLogout} 
-                className="login-btn" 
-                style={{ marginTop: 0, background: '#ef4444' }}
-                disabled={loading}
-              >
-                {loading ? 'Processing...' : 'Yes, Log me in'}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={handleLogin}>
-            <div className="form-group">
-              <label className="form-label">Username or Mobile</label>
-              <input 
-                type="text" 
-                className="form-input"
+    <Container component="main" maxWidth="xs">
+      <Box sx={{ marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <img src="/logo/full-logo.png" alt="HRMD Logo" style={{ height: '60px', objectFit: 'contain', marginBottom: '24px' }} />
+        <Paper elevation={3} sx={{ padding: 4, width: '100%', borderRadius: 2 }}>
+          <Typography component="h1" variant="h5" align="center" gutterBottom>
+            Sign in to your account
+          </Typography>
+          
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          
+          {showForceLogoutPrompt ? (
+            <Box sx={{ textAlign: 'center', background: '#f8fafc', p: 2, borderRadius: 2, border: '1px solid #e2e8f0', mb: 2 }}>
+              <Typography variant="body2" sx={{ color: '#334155', mb: 2, fontWeight: 500 }}>
+                You are already logged in on another device. Would you like to log out of the other device and log in here?
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Button 
+                    fullWidth
+                    variant="outlined"
+                    onClick={() => {
+                        setShowForceLogoutPrompt(false);
+                        setError(null);
+                    }} 
+                    disabled={loading}
+                  >
+                    Cancel
+                  </Button>
+                </Grid>
+                <Grid item xs={6}>
+                  <Button 
+                    fullWidth
+                    variant="contained"
+                    color="error"
+                    onClick={handleForceLogout} 
+                    disabled={loading}
+                  >
+                    {loading ? 'Processing...' : 'Yes, Log me in'}
+                  </Button>
+                </Grid>
+              </Grid>
+            </Box>
+          ) : (
+            <Box component="form" onSubmit={handleLogin} sx={{ mt: 1 }}>
+              <TextField
+                margin="normal"
+                size="small"
+                required  
+                fullWidth
+                label="Username, Email, or Mobile"
+                name="username"
+                autoComplete="username"
+                autoFocus
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
-                required
+                onChange={handleUsernameChange}
+                error={!!fieldErrors.username}
+                helperText={fieldErrors.username}
               />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Password</label>
-              <input 
-                type="password" 
-                className="form-input"
+              <TextField
+                margin="normal"
+                            size="small"
+
+                required
+                fullWidth
+                name="password"
+                label="Password"
+                type="password"
+                autoComplete="current-password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
+                onChange={handlePasswordChange}
+                error={!!fieldErrors.password}
+                helperText={fieldErrors.password}
               />
-            </div>
-            
-            <button 
-              type="submit" 
-              className="login-btn"
-              disabled={loading}
-            >
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
-        )}
-      </div>
-    </div>
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                sx={{ mt: 3, mb: 2, py: 1.2 }}
+                disabled={loading}
+              >
+                {loading ? 'Signing in...' : 'Sign In'}
+              </Button>
+              <Grid container>
+                <Grid item xs>
+                  <Link component={RouterLink} to="/forget-password" variant="body2">
+                    Forgot password?
+                  </Link>
+                </Grid>
+                <Grid item>
+                  <Link component={RouterLink} to="/signup" variant="body2">
+                    {"Don't have an account? Sign Up"}
+                  </Link>
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+        </Paper>
+      </Box>
+    </Container>
   );
 }

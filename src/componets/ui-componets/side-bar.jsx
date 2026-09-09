@@ -13,34 +13,18 @@ function SideBar() {
     const location = useLocation();
     const theme = useTheme();
 
-    useEffect(() => {
-        const sendHeartbeat = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/auth/heartbeat`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                });
-                if (response.status === 401) {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                    navigate('/login');
-                }
-            } catch (error) {
-                console.error("Heartbeat failed", error);
-            }
-        };
+    let userName = 'User';
+    let companyName = '';
+    try {
+        const userString = localStorage.getItem('user');
+        if (userString) {
+            const user = JSON.parse(userString);
+            userName = user.name || user.username || 'User';
+            companyName = user.company_name || '';
+        }
+    } catch (e) {}
 
-        sendHeartbeat();
-        const intervalId = setInterval(sendHeartbeat, 30000);
 
-        return () => clearInterval(intervalId);
-    }, [navigate]);
 
     const handleLogout = async (e) => {
         if (e) e.preventDefault();
@@ -71,10 +55,12 @@ function SideBar() {
             <AppBar position="static" elevation={0} sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider', color: 'text.primary' }}>
                 <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, sm: 4 }, minHeight: 50 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <Typography variant="h6" fontWeight="bold" sx={{ color: 'primary.main', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1 }} onClick={() => navigate('/clients')}>
-                            {/* <Box sx={{ bgcolor: 'primary.main', color: '#fff', px: 1.5, py: 0.5, borderRadius: 1, fontWeight: 'bold' }}>H</Box> */}
-                            HRMD App
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }} onClick={() => navigate('/clients')}>
+                            <img src="/logo/full-logo.png" alt="HRMD Logo" style={{ height: '35px', objectFit: 'contain' }} />
+                            <Typography variant="subtitle1" fontWeight="medium" sx={{ color: 'primary.main', borderLeft: 1, borderColor: 'divider', pl: 2 }}>
+                                Welcome, {companyName || userName}
+                            </Typography>
+                        </Box>
 
                         {/* <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Button 
