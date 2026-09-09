@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, IconButton, Menu, MenuItem, Select, TextField, FormControl, InputLabel, Tooltip, Dialog, DialogTitle, DialogContent, Typography, Breadcrumbs, InputAdornment, Pagination } from '@mui/material';
+import { Box, Button, IconButton, Menu, MenuItem, Select, TextField, FormControl, InputLabel, Tooltip, Dialog, DialogTitle, DialogContent, Typography, Breadcrumbs, InputAdornment, Pagination, Autocomplete } from '@mui/material';
 import LinkIcon from '@mui/icons-material/Link';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -275,11 +275,14 @@ const ClientLinks = ({ clientId, client, settings, quickPortals }) => {
       const sortedCreds = [...inlineCreds].sort((a, b) => {
         const nameA = (a.portal_name || '').toLowerCase();
         const nameB = (b.portal_name || '').toLowerCase();
-        const aIsPriority = nameA.includes('pf') || nameA.includes('esic');
-        const bIsPriority = nameB.includes('pf') || nameB.includes('esic');
-        if (aIsPriority && !bIsPriority) return -1;
-        if (!aIsPriority && bIsPriority) return 1;
-        return 0;
+        const getPriority = (name) => {
+          if (name.includes('pf')) return 4;
+          if (name.includes('esic')) return 3;
+          if (name.includes('lwf')) return 2;
+          if (name.includes('shram') || name.includes('sarm')) return 1;
+          return 0;
+        };
+        return getPriority(nameB) - getPriority(nameA);
       });
       setCreds(sortedCreds);
       return;
@@ -298,11 +301,14 @@ const ClientLinks = ({ clientId, client, settings, quickPortals }) => {
           const sortedCreds = [...fetchedCreds].sort((a, b) => {
             const nameA = (a.portal_name || '').toLowerCase();
             const nameB = (b.portal_name || '').toLowerCase();
-            const aIsPriority = nameA.includes('pf') || nameA.includes('esic');
-            const bIsPriority = nameB.includes('pf') || nameB.includes('esic');
-            if (aIsPriority && !bIsPriority) return -1;
-            if (!aIsPriority && bIsPriority) return 1;
-            return 0;
+            const getPriority = (name) => {
+              if (name.includes('pf')) return 4;
+              if (name.includes('esic')) return 3;
+              if (name.includes('lwf')) return 2;
+              if (name.includes('shram') || name.includes('sarm')) return 1;
+              return 0;
+            };
+            return getPriority(nameB) - getPriority(nameA);
           });
           setCreds(sortedCreds);
         }
@@ -316,7 +322,7 @@ const ClientLinks = ({ clientId, client, settings, quickPortals }) => {
 
   return (
     <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', minHeight: '28px', flexWrap: 'nowrap' }}>
-      {creds.slice(0, 2).map((cred, i) => {
+      {creds.slice(0, 4).map((cred, i) => {
         if (!getResolvedLink(cred)) return null;
         const name = (cred.portal_name || '').toLowerCase();
         let bg = '#f1f5f9';
@@ -331,14 +337,14 @@ const ClientLinks = ({ clientId, client, settings, quickPortals }) => {
           bg = '#fdf4ff';
           color = '#c026d3';
           hoverBg = '#fae8ff';
-        } else if (name.includes('pt')) {
+        } else if (name.includes('lwf')) {
           bg = '#f0fdf4';
           color = '#15803d';
           hoverBg = '#dcfce7';
         } else if (name.includes('sarm') || name.includes('shram')) {
-          bg = '#fff7ed';
-          color = '#c2410c';
-          hoverBg = '#ffedd5';
+          bg = '#f0fdfa';
+          color = '#0f766e';
+          hoverBg = '#ccfbf1';
         }
 
         return (
@@ -368,7 +374,7 @@ const ClientLinks = ({ clientId, client, settings, quickPortals }) => {
         );
       })}
 
-      {creds.length > 2 && (
+      {creds.length > 4 && (
         <>
           <IconButton size="small" onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ width: 26, height: 26 }}>
             <MoreVertIcon fontSize="small" />
@@ -378,7 +384,7 @@ const ClientLinks = ({ clientId, client, settings, quickPortals }) => {
             open={open}
             onClose={() => setAnchorEl(null)}
           >
-            {creds.slice(2).map((cred, i) => getResolvedLink(cred) && (
+            {creds.slice(4).map((cred, i) => getResolvedLink(cred) && (
               <MenuItem
                 key={i}
                 onClick={() => {
@@ -470,7 +476,7 @@ export default function ClientsPage() {
   // Settings State
   const [settings, setSettings] = useState({
     browserMode: 'normal',
-    browserEngine: 'chromium',
+    browserEngine: 'chrome',
     delayMs: '3000'
   });
   const [availableBrowsers, setAvailableBrowsers] = useState([]);
@@ -617,7 +623,7 @@ export default function ClientsPage() {
     <>
       <div style={{ padding: '16px 20px', background: theme.palette.background.paper, borderRadius: '12px', border: `1px solid ${theme.palette.divider}`, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-          <h1 style={{ margin: 0, fontSize: '1.5rem', color: theme.palette.text.primary }}>Clients</h1>
+          <h1 style={{ margin: 0, fontSize: '1.5rem', color: theme.palette.primary.main }}>Clients</h1>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             <Tooltip title="Quick Portals">
               <IconButton onClick={() => setQuickPortalsOpen(true)} sx={{ bgcolor: 'background.default', border: 1, borderColor: 'divider', borderRadius: 2 }}>
@@ -671,11 +677,52 @@ export default function ClientsPage() {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.875rem' }}>
             <span>Show</span>
-            <Select size="small" value={limit} onChange={(e) => { setLimit(e.target.value); setPage(1); }} sx={{ height: 32, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' } }}>
-              <MenuItem value={10}>10</MenuItem>
-              <MenuItem value={25}>25</MenuItem>
-              <MenuItem value={50}>50</MenuItem>
-            </Select>
+            <Autocomplete
+              freeSolo
+              size="small"
+              disableClearable
+              options={['10', '25', '50', '100']}
+              value={String(limit)}
+              onChange={(event, newValue) => {
+                let val = parseInt(newValue, 10);
+                if (!isNaN(val)) {
+                  setLimit(val);
+                  setPage(1);
+                }
+              }}
+              inputValue={String(limit)}
+              onInputChange={(event, newInputValue) => {
+                setLimit(newInputValue);
+                setPage(1);
+              }}
+              onBlur={() => {
+                let val = parseInt(limit, 10);
+                if (isNaN(val) || val < 10) val = 10;
+                if (val > 1000) val = 1000;
+                if (String(val) !== String(limit)) {
+                  setLimit(val);
+                  setPage(1);
+                }
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  type="number"
+                  inputProps={{ ...params.inputProps, min: 10, max: 1000 }}
+                  sx={{ 
+                    width: 90,
+                    '& .MuiInputBase-root': { height: 32, minHeight: 32, padding: '0 8px' },
+                    '& input[type=number]': {
+                      '-moz-appearance': 'textfield'
+                    },
+                    '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
+                      '-webkit-appearance': 'none',
+                      margin: 0
+                    }
+                  }}
+                />
+              )}
+            />
             <span>entries</span>
           </Box>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
@@ -712,19 +759,19 @@ export default function ClientsPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem', tableLayout: 'fixed' }}>
             <thead style={{ bgcolor: '#f8fafc' }}>
               <tr style={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
-                <th onClick={() => handleSort('client_name')} style={{ cursor: 'pointer', padding: '10px 12px', width: '22%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
+                <th onClick={() => handleSort('client_name')} style={{ cursor: 'pointer', padding: '10px 12px', width: '20%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>Client Name {renderSortIcon('client_name')}</Box>
                 </th>
-                <th onClick={() => handleSort('pf_username')} style={{ cursor: 'pointer', padding: '10px 12px', width: '15%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
+                <th onClick={() => handleSort('pf_username')} style={{ cursor: 'pointer', padding: '10px 12px', width: '14%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>PF Username {renderSortIcon('pf_username')}</Box>
                 </th>
-                <th onClick={() => handleSort('esic_username')} style={{ cursor: 'pointer', padding: '10px 12px', width: '15%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
+                <th onClick={() => handleSort('esic_username')} style={{ cursor: 'pointer', padding: '10px 12px', width: '14%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>ESIC Username {renderSortIcon('esic_username')}</Box>
                 </th>
-                <th onClick={() => handleSort('content_no')} style={{ cursor: 'pointer', padding: '10px 12px', width: '15%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
+                <th onClick={() => handleSort('content_no')} style={{ cursor: 'pointer', padding: '10px 12px', width: '14%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>Contact No. {renderSortIcon('content_no')}</Box>
                 </th>
-                <th style={{ padding: '10px 12px', width: '23%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
+                <th style={{ padding: '10px 12px', width: '30%', color: theme.palette.text.primary, fontWeight: 600, borderRight: `1px solid ${theme.palette.divider}` }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     Links
                     <IconButton size="small" onClick={(e) => setFilterAnchorEl(e.currentTarget)} sx={{ ml: 1, padding: '2px' }}>
@@ -742,7 +789,7 @@ export default function ClientsPage() {
                     ))}
                   </Menu>
                 </th>
-                <th style={{ padding: '10px 12px', width: '10%', color: theme.palette.text.primary, fontWeight: 600, textAlign: 'center' }}>Action</th>
+                <th style={{ padding: '10px 12px', width: '8%', color: theme.palette.text.primary, fontWeight: 600, textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>

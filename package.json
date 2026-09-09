@@ -24,10 +24,17 @@
       "package.json"
     ],
     "win": {
+      "icon": "public/logo/half-logo.png",
       "target": [
         "nsis",
         "portable"
       ]
+    },
+    "mac": {
+      "icon": "public/logo/half-logo.png"
+    },
+    "linux": {
+      "icon": "public/logo/half-logo.png"
     }
   },
   "dependencies": {
@@ -35,7 +42,7 @@
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^6.3.0",
     "@mui/material": "^6.3.0",
-    "playwright": "^1.62.1",
+    "playwright-core": "^1.62.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3"

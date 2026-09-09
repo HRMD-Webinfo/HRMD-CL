@@ -30,9 +30,6 @@ function checkBrowsers() {
     }
   }
 
-  // Always fallback to Chromium if they use bundled puppeteer
-  browsers.push({ name: 'Bundled Chromium', path: 'bundled', id: 'chromium' });
-
   return browsers;
 }
 
@@ -43,6 +40,7 @@ function createWindow() {
     minWidth: 800, // Prevent window from getting too small
     minHeight: 600,
     autoHideMenuBar: true, // Hides the File, Edit, View menu bar
+    icon: path.join(__dirname, app.isPackaged ? '../dist/logo/half-logo.png' : '../public/logo/half-logo.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -68,20 +66,25 @@ app.whenReady().then(() => {
   ipcMain.handle('launch-portal', async (event, data) => {
     const { link, username, password, engine, mode, delayMs } = data;
     try {
-        const playwright = require('playwright');
+        const playwright = require('playwright-core');
         const browsersList = checkBrowsers();
-        const selectedBrowser = browsersList.find(b => b.id === engine) || browsersList.find(b => b.path !== 'bundled') || browsersList[0];
+        if (browsersList.length === 0) {
+            return { success: false, error: 'No compatible browser found on your system (Chrome, Edge, or Firefox required).' };
+        }
+        const selectedBrowser = browsersList.find(b => b.id === engine) || browsersList[0];
         
         let browserType = playwright.chromium;
         const launchOptions = { headless: false, args: ['--start-maximized'] };
         
         if (selectedBrowser.id === 'firefox') {
             browserType = playwright.firefox;
+        } else {
+            // Chromium/Edge specific anti-detection arguments
+            launchOptions.args.push('--disable-blink-features=AutomationControlled');
+            launchOptions.ignoreDefaultArgs = ['--enable-automation'];
         }
         
-        if (selectedBrowser.path !== 'bundled') {
-            launchOptions.executablePath = selectedBrowser.path;
-        }
+        launchOptions.executablePath = selectedBrowser.path;
 
         let context, page;
 
@@ -97,7 +100,7 @@ app.whenReady().then(() => {
                 launchOptions.args.push('--incognito');
             }
             
-            context = await browserType.launchPersistentContext(tempDir, { ...launchOptions, viewport: null });
+            context = await browserType.launchPersistentContext(tempDir, { ...launchOptions, viewport: null, acceptDownloads: true });
             page = context.pages().length > 0 ? context.pages()[0] : await context.newPage();
             
             context.on('close', () => {
@@ -105,9 +108,30 @@ app.whenReady().then(() => {
             });
         } else {
             const browser = await browserType.launch(launchOptions);
-            context = await browser.newContext({ viewport: null });
+            context = await browser.newContext({ viewport: null, acceptDownloads: true });
             page = await context.newPage();
         }
+
+        // Hide webdriver flag to help bypass government portal bot detection
+        await context.addInitScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
+
+        // Handle downloads so Playwright doesn't swallow them
+        const handleDownload = async (download) => {
+            try {
+                const downloadPath = path.join(require('os').homedir(), 'Downloads', download.suggestedFilename());
+                await download.saveAs(downloadPath);
+                console.log('Downloaded to:', downloadPath);
+                // Open the downloaded file directly in the default viewer (usually a browser)
+                require('electron').shell.openPath(downloadPath);
+            } catch (err) {
+                console.error('Download failed:', err);
+            }
+        };
+
+        // Attach download handler to current and future pages
+        context.on('page', p => p.on('download', handleDownload));
+        if (page) page.on('download', handleDownload);
+
         try {
             await page.goto(link.startsWith('http') ? link : `https://${link}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
         } catch (gotoErr) {
@@ -127,6 +151,21 @@ app.whenReady().then(() => {
         }
 
         if (username) {
+            let finalUsername = username;
+            
+            // Handle LWF portal branch dropdown (e.g. "HO/1232112")
+            try {
+                const branchDropdown = page.locator('select[name="LoginForm[branch]"]');
+                if (username.includes('/') && await branchDropdown.count() > 0) {
+                    const parts = username.split('/');
+                    const branchValue = parts[0] + '/'; // e.g., "HO/"
+                    finalUsername = parts.slice(1).join('/'); // The rest of the ID
+                    await branchDropdown.selectOption(branchValue);
+                }
+            } catch (e) {
+                console.log("Branch selection skipped:", e.message);
+            }
+
             const userSelectors = [
                 'input[type="email"]',
                 'input[name*="user" i]',
@@ -149,7 +188,7 @@ app.whenReady().then(() => {
             const count = await userFields.count();
             for (let i = 0; i < count; i++) {
                 if (await userFields.nth(i).isVisible()) {
-                    await userFields.nth(i).fill(username);
+                    await userFields.nth(i).fill(finalUsername);
                     break;
                 }
             }
@@ -174,6 +213,8 @@ app.whenReady().then(() => {
                 }
             }
         }
+
+
 
         return { success: true };
     } catch (e) {
