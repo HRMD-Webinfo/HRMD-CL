@@ -12,6 +12,7 @@ import {
   Link,
   Grid
 } from '@mui/material';
+import Footer from '../../componets/ui-componets/footer';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -126,104 +127,107 @@ export default function LoginPage() {
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box sx={{ marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <img src="/logo/full-logo.png" alt="HRMD Logo" style={{ height: '60px', objectFit: 'contain', marginBottom: '24px' }} />
-        <Paper elevation={3} sx={{ padding: 4, width: '100%', borderRadius: 2 }}>
-          <Typography component="h1" variant="h5" align="center" gutterBottom>
-            Sign in to your account
-          </Typography>
-          
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          
-          {showForceLogoutPrompt ? (
-            <Box sx={{ textAlign: 'center', background: '#f8fafc', p: 2, borderRadius: 2, border: '1px solid #e2e8f0', mb: 2 }}>
-              <Typography variant="body2" sx={{ color: '#334155', mb: 2, fontWeight: 500 }}>
-                You are already logged in on another device. Would you like to log out of the other device and log in here?
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Button 
-                    fullWidth
-                    variant="outlined"
-                    onClick={() => {
-                        setShowForceLogoutPrompt(false);
-                        setError(null);
-                    }} 
-                    disabled={loading}
-                  >
-                    Cancel
-                  </Button>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
+      <Container component="main" maxWidth="xs" sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', py: 8 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img src="/logo/full-logo.png" alt="HRMD Logo" style={{ height: '60px', objectFit: 'contain', marginBottom: '24px' }} />
+          <Paper elevation={3} sx={{ padding: 4, width: '100%', borderRadius: 2 }}>
+            <Typography component="h1" variant="h5" align="center" gutterBottom>
+              Sign in to your account
+            </Typography>
+            
+            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+            
+            {showForceLogoutPrompt ? (
+              <Box sx={{ textAlign: 'center', background: '#f8fafc', p: 2, borderRadius: 2, border: '1px solid #e2e8f0', mb: 2 }}>
+                <Typography variant="body2" sx={{ color: '#334155', mb: 2, fontWeight: 500 }}>
+                  You are already logged in on another device. Would you like to log out of the other device and log in here?
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <Button 
+                      fullWidth
+                      variant="outlined"
+                      onClick={() => {
+                          setShowForceLogoutPrompt(false);
+                          setError(null);
+                      }} 
+                      disabled={loading}
+                    >
+                      Cancel
+                    </Button>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Button 
+                      fullWidth
+                      variant="contained"
+                      color="error"
+                      onClick={handleForceLogout} 
+                      disabled={loading}
+                    >
+                      {loading ? 'Processing...' : 'Yes, Log me in'}
+                    </Button>
+                  </Grid>
                 </Grid>
-                <Grid item xs={6}>
-                  <Button 
-                    fullWidth
-                    variant="contained"
-                    color="error"
-                    onClick={handleForceLogout} 
-                    disabled={loading}
-                  >
-                    {loading ? 'Processing...' : 'Yes, Log me in'}
-                  </Button>
+              </Box>
+            ) : (
+              <Box component="form" onSubmit={handleLogin} sx={{ mt: 1 }}>
+                <TextField
+                  margin="normal"
+                  size="small"
+                  required  
+                  fullWidth
+                  label="Username, Email, or Mobile"
+                  name="username"
+                  autoComplete="username"
+                  autoFocus
+                  value={username}
+                  onChange={handleUsernameChange}
+                  error={!!fieldErrors.username}
+                  helperText={fieldErrors.username}
+                />
+                <TextField
+                  margin="normal"
+                              size="small"
+  
+                  required
+                  fullWidth
+                  name="password"
+                  label="Password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={handlePasswordChange}
+                  error={!!fieldErrors.password}
+                  helperText={fieldErrors.password}
+                />
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  sx={{ mt: 3, mb: 2, py: 1.2 }}
+                  disabled={loading}
+                >
+                  {loading ? 'Signing in...' : 'Sign In'}
+                </Button>
+                <Grid container>
+                  <Grid item xs>
+                    <Link component={RouterLink} to="/forget-password" variant="body2">
+                      Forgot password?
+                    </Link>
+                  </Grid>
+                  <Grid item>
+                    <Link component={RouterLink} to="/signup" variant="body2">
+                      {"Don't have an account? Sign Up"}
+                    </Link>
+                  </Grid>
                 </Grid>
-              </Grid>
-            </Box>
-          ) : (
-            <Box component="form" onSubmit={handleLogin} sx={{ mt: 1 }}>
-              <TextField
-                margin="normal"
-                size="small"
-                required  
-                fullWidth
-                label="Username, Email, or Mobile"
-                name="username"
-                autoComplete="username"
-                autoFocus
-                value={username}
-                onChange={handleUsernameChange}
-                error={!!fieldErrors.username}
-                helperText={fieldErrors.username}
-              />
-              <TextField
-                margin="normal"
-                            size="small"
-
-                required
-                fullWidth
-                name="password"
-                label="Password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={handlePasswordChange}
-                error={!!fieldErrors.password}
-                helperText={fieldErrors.password}
-              />
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                sx={{ mt: 3, mb: 2, py: 1.2 }}
-                disabled={loading}
-              >
-                {loading ? 'Signing in...' : 'Sign In'}
-              </Button>
-              <Grid container>
-                <Grid item xs>
-                  <Link component={RouterLink} to="/forget-password" variant="body2">
-                    Forgot password?
-                  </Link>
-                </Grid>
-                <Grid item>
-                  <Link component={RouterLink} to="/signup" variant="body2">
-                    {"Don't have an account? Sign Up"}
-                  </Link>
-                </Grid>
-              </Grid>
-            </Box>
-          )}
-        </Paper>
-      </Box>
-    </Container>
+              </Box>
+            )}
+          </Paper>
+        </Box>
+      </Container>
+      <Footer />
+    </Box>
   );
 }

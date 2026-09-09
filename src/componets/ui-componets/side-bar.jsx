@@ -7,6 +7,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { Button, Typography, Box, AppBar, Toolbar } from '@mui/material';
 import { API_BASE } from '../../config';
+import Footer from './footer';
 
 function SideBar() {
     const navigate = useNavigate();
@@ -103,16 +104,20 @@ function SideBar() {
             </AppBar>
 
             {/* Main Content Area */}
-            <Box component="main" sx={{ flex: 1, p: { xs: 1, sm: 2 }, overflowY: 'auto' }}>
-                <Routes>
-                    <Route path="/" element={<Navigate to="/clients" replace />} />
-                    <Route path="/dashboard" element={<Navigate to="/clients" replace />} />
-                    <Route path="/clients" element={<ClientsPage />} />
-                    <Route path="/clients/new" element={<ClientForm mode="create" />} />
-                    <Route path="/clients/edit/:id" element={<ClientForm mode="edit" />} />
-                    <Route path="/clients/view/:id" element={<ClientForm mode="view" />} />
-                    <Route path="*" element={<Navigate to="/clients" replace />} />
-                </Routes>
+            <Box component="main" sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ flex: 1, p: { xs: 1, sm: 2 } }}>
+                    <Routes>
+                        <Route path="/" element={<Navigate to="/clients" replace />} />
+                        <Route path="/dashboard" element={<Navigate to="/clients" replace />} />
+                        <Route path="/clients" element={<ClientsPage />} />
+                        <Route path="/clients/new" element={<ClientForm mode="create" />} />
+                        <Route path="/clients/edit/:id" element={<ClientForm mode="edit" />} />
+                        <Route path="/clients/view/:id" element={<ClientForm mode="view" />} />
+                        <Route path="*" element={<Navigate to="/clients" replace />} />
+                    </Routes>
+                </Box>
+                {/* Footer */}
+                <Footer />
             </Box>
         </Box>
     );
