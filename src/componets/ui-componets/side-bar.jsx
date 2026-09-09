@@ -57,7 +57,7 @@ function SideBar() {
                 <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, sm: 4 }, minHeight: 50 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }} onClick={() => navigate('/clients')}>
-                            <img src="/logo/full-logo.png" alt="HRMD Logo" style={{ height: '35px', objectFit: 'contain' }} />
+                            <img src="./logo/full-logo.png" alt="HRMD Logo" style={{ height: '35px', objectFit: 'contain' }} />
                             <Typography variant="subtitle1" fontWeight="medium" sx={{ color: 'primary.main', borderLeft: 1, borderColor: 'divider', pl: 2 }}>
                                 Welcome, {companyName || userName}
                             </Typography>

@@ -101,7 +101,7 @@ export default function ForgetPasswordPage() {
   return (
     <Container component="main" maxWidth="xs">
       <Box sx={{ marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <img src="/logo/full-logo.png" alt="HRMD Logo" style={{ height: '60px', objectFit: 'contain', marginBottom: '24px' }} />
+        <img src="./logo/full-logo.png" alt="HRMD Logo" style={{ height: '60px', objectFit: 'contain', marginBottom: '24px' }} />
         <Paper elevation={3} sx={{ padding: 4, width: '100%', borderRadius: 2 }}>
           <Typography component="h1" variant="h5" align="center" gutterBottom>
             Reset Password
