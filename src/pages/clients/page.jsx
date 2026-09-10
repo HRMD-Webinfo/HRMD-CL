@@ -658,6 +658,7 @@ export default function ClientsPage() {
               {availableBrowsers.length === 0 ? <MenuItem value="chromium">Chromium</MenuItem> : availableBrowsers.map(b => (
                 <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>
               ))}
+              <MenuItem value="electron-browser">Standard Window (Safe)</MenuItem>
             </Select>
           </FormControl>
 
