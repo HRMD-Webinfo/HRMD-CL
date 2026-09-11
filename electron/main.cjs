@@ -60,7 +60,35 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  // Check for updates automatically in the background
+  // Auto Updater Events
+  const { dialog } = require('electron');
+  
+  autoUpdater.on('update-available', () => {
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'Update Available',
+      message: 'A new update is available. Downloading now in the background...'
+    });
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'Update Ready',
+      message: 'The update has been downloaded. Restart the app to apply it now?',
+      buttons: ['Restart', 'Later']
+    }).then((result) => {
+      if (result.response === 0) {
+        autoUpdater.quitAndInstall();
+      }
+    });
+  });
+
+  autoUpdater.on('error', (err) => {
+    dialog.showErrorBox('Update Error', err == null ? "unknown" : (err.stack || err).toString());
+  });
+
+  // Check for updates automatically
   autoUpdater.checkForUpdatesAndNotify();
 
   ipcMain.handle('get-browsers', () => {
