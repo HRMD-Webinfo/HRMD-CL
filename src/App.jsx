@@ -3,27 +3,31 @@ import SideBar from "./componets/ui-componets/side-bar";
 import LoginPage from "./pages/login/page";
 import SignupPage from "./pages/signup/page";
 import ForgetPasswordPage from "./pages/forget-password/page";
+import UpdateDialog from "./componets/ui-componets/UpdateDialog";
 
 function App() {
   const location = useLocation(); // Forces re-render on route changes
   const isAuthenticated = !!localStorage.getItem('token');
 
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
-      <Route path="/forget-password" element={<ForgetPasswordPage />} />
-      <Route 
-        path="/*" 
-        element={
-          isAuthenticated ? (
-            <SideBar />
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } 
-      />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/forget-password" element={<ForgetPasswordPage />} />
+        <Route 
+          path="/*" 
+          element={
+            isAuthenticated ? (
+              <SideBar />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } 
+        />
+      </Routes>
+      <UpdateDialog />
+    </>
   );
 }
 

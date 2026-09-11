@@ -34,8 +34,10 @@ function checkBrowsers() {
   return browsers;
 }
 
+let mainWindow;
+
 function createWindow() {
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 800, // Prevent window from getting too small
@@ -50,42 +52,41 @@ function createWindow() {
   });
 
   // Maximize the window immediately so it fills the user's screen
-  win.maximize();
+  mainWindow.maximize();
 
   if (app.isPackaged) {
-    win.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   } else {
-    win.loadURL("http://localhost:5173");
+    mainWindow.loadURL("http://localhost:5173");
   }
 }
 
 app.whenReady().then(() => {
   // Auto Updater Events
-  const { dialog } = require('electron');
-  
+  const sendUpdateStatus = (status, progress = null, error = null) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', { status, progress, error });
+    }
+  };
+
   autoUpdater.on('update-available', () => {
-    dialog.showMessageBox({
-      type: 'info',
-      title: 'Update Available',
-      message: 'A new update is available. Downloading now in the background...'
-    });
+    sendUpdateStatus('available');
+  });
+
+  autoUpdater.on('download-progress', (progressObj) => {
+    sendUpdateStatus('downloading', progressObj.percent);
   });
 
   autoUpdater.on('update-downloaded', () => {
-    dialog.showMessageBox({
-      type: 'info',
-      title: 'Update Ready',
-      message: 'The update has been downloaded. Restart the app to apply it now?',
-      buttons: ['Restart', 'Later']
-    }).then((result) => {
-      if (result.response === 0) {
-        autoUpdater.quitAndInstall();
-      }
-    });
+    sendUpdateStatus('ready');
   });
 
   autoUpdater.on('error', (err) => {
-    dialog.showErrorBox('Update Error', err == null ? "unknown" : (err.stack || err).toString());
+    sendUpdateStatus('error', null, err == null ? "unknown" : (err.stack || err).toString());
+  });
+
+  ipcMain.handle('install-update', () => {
+    autoUpdater.quitAndInstall();
   });
 
   // Check for updates automatically
