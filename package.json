@@ -15,6 +15,13 @@
   "build": {
     "appId": "com.hrmdcl.app",
     "productName": "HRMD App",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "HRMD-Webinfo",
+        "repo": "HRMD-CL"
+      }
+    ],
     "directories": {
       "output": "release"
     },
@@ -42,6 +49,7 @@
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^6.3.0",
     "@mui/material": "^6.3.0",
+    "electron-updater": "^6.8.9",
     "playwright-core": "^1.62.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

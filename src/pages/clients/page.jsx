@@ -476,7 +476,7 @@ export default function ClientsPage() {
   // Settings State
   const [settings, setSettings] = useState({
     browserMode: 'normal',
-    browserEngine: 'chrome',
+    browserEngine: 'electron-browser',
     delayMs: '3000'
   });
   const [availableBrowsers, setAvailableBrowsers] = useState([]);

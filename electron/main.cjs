@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const { autoUpdater } = require("electron-updater");
 
 function checkBrowsers() {
   const browsers = [];
@@ -59,6 +60,9 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Check for updates automatically in the background
+  autoUpdater.checkForUpdatesAndNotify();
+
   ipcMain.handle('get-browsers', () => {
     return checkBrowsers();
   });
