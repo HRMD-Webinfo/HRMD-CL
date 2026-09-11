@@ -1,7 +1,7 @@
 {
   "name": "hrmd-cl",
   "private": true,
-  "version": "0.0.4",
+  "version": "1.0.4",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -10,7 +10,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "electron": "electron .",
-    "electron:build": "npm run build && electron-builder"
+    "electron:build": "npm run build && electron-builder",
+    "release": "npm run build && electron-builder -p always"
   },
   "build": {
     "appId": "com.hrmdcl.app",
