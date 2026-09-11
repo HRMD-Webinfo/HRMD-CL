@@ -130,7 +130,7 @@ export default function LoginPage() {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
       <Container component="main" maxWidth="xs" sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', py: 8 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src="./logo/full-logo.png" alt="HRMD Logo" style={{ height: '60px', objectFit: 'contain', marginBottom: '24px' }} />
+          {/* <img src="./logo/full-logo.png" alt="HRMD Logo" style={{ height: '60px', objectFit: 'contain', marginBottom: '24px' }} /> */}
           <Paper elevation={3} sx={{ padding: 4, width: '100%', borderRadius: 2 }}>
             <Typography component="h1" variant="h5" align="center" gutterBottom>
               Sign in to your account
