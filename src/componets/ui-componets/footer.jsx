@@ -4,6 +4,8 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
 import LanguageIcon from '@mui/icons-material/Language';
+import InfoIcon from '@mui/icons-material/Info';
+import pkg from '../../../package.json';
 
 export default function Footer() {
     let webside = 'https://www.hrmdpayrollsoftware.com/';
@@ -41,6 +43,12 @@ export default function Footer() {
                             <Link href={`mailto:${email}`} variant="body2" color="primary" sx={{ textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                                 {email}
                             </Link>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <InfoIcon fontSize="small" color="action" />
+                            <Typography variant="body2" color="text.secondary">
+                                v{pkg.version}
+                            </Typography>
                         </Box>
                     </Box>
                 </Grid>

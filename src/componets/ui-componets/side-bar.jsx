@@ -23,14 +23,14 @@ function SideBar() {
             userName = user.name || user.username || 'User';
             companyName = user.company_name || '';
         }
-    } catch (e) {}
+    } catch (e) { }
 
 
 
     const handleLogout = async (e) => {
         if (e) e.preventDefault();
         const token = localStorage.getItem('token');
-        
+
         if (token) {
             try {
                 await fetch(`${API_BASE}/api/auth/logout`, {
@@ -86,12 +86,12 @@ function SideBar() {
                         </Box> */}
                     </Box>
 
-                    <Button 
-                        onClick={handleLogout} 
-                        startIcon={<LogoutIcon />} 
-                        sx={{ 
-                            textTransform: 'none', 
-                            color: 'error.main', 
+                    <Button
+                        onClick={handleLogout}
+                        startIcon={<LogoutIcon />}
+                        sx={{
+                            textTransform: 'none',
+                            color: 'error.main',
                             fontWeight: 500,
                             borderRadius: 1.5,
                             px: 2,

@@ -70,27 +70,42 @@ app.whenReady().then(() => {
     const base = path.basename(originalName, ext);
     const uniqueSuffix = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
     const uniqueName = `${base}_${uniqueSuffix}${ext}`;
-    
-    // Close annoying blank popup windows that open when a PDF triggers a force-download in a new tab
+
+    // Hide annoying blank popup windows that open when a PDF triggers a force-download in a new tab
     const win = BrowserWindow.fromWebContents(webContents);
+    let shouldCloseWin = false;
     if (win && win !== mainWindow) {
       const url = webContents.getURL();
       if (!url || url === '' || url === 'about:blank' || url === item.getURL()) {
-        win.close();
+        win.hide(); // Hide instantly so the user doesn't see it
+        shouldCloseWin = true; // Mark to close after download finishes
       }
     }
+    
+    const downloadsFolder = app.getPath('downloads');
+    const fs = require('fs');
+    
+    if (fs.existsSync(downloadsFolder)) {
+      const downloadPath = path.join(downloadsFolder, uniqueName);
+      item.setSavePath(downloadPath);
+    }
+    // If the downloads folder doesn't exist, Electron will automatically prompt the user with a "Save As" dialog!
 
-    const downloadPath = path.join(require('os').homedir(), 'Downloads', uniqueName);
-    item.setSavePath(downloadPath);
     item.once('done', (event, state) => {
+      // Safely close the hidden popup window now that the download is finished
+      if (shouldCloseWin && win && !win.isDestroyed()) {
+        win.close();
+      }
+
       if (state === 'completed') {
-        console.log('Downloaded to:', downloadPath);
-        
+        const finalPath = item.getSavePath();
+        console.log('Downloaded to:', finalPath);
+
         const extLower = ext.toLowerCase();
         // Open safe files in the PC's default browser/app (e.g., Adobe, Excel, Chrome)
         const safeExtensions = ['.pdf', '.xls', '.xlsx', '.csv', '.txt', '.png', '.jpg', '.jpeg', '.zip', '.rar', '.doc', '.docx', '.rtf', '.gif', '.webp', '.bmp'];
         if (safeExtensions.includes(extLower)) {
-          shell.openPath(downloadPath);
+          shell.openPath(finalPath);
         } else {
           console.log(`Skipped auto-opening ${ext} file for security reasons.`);
         }
@@ -148,6 +163,9 @@ app.whenReady().then(() => {
           }
         });
 
+        // Spoof user agent to prevent government portals from blocking Electron and disabling forms
+        win.webContents.userAgent = win.webContents.userAgent.replace(/Electron\/[0-9\.]+ /, '');
+
         // Handle target="_blank" popups gracefully so they don't look like generic electron windows
         win.webContents.setWindowOpenHandler((details) => {
           return {
@@ -163,23 +181,25 @@ app.whenReady().then(() => {
             }
           };
         });
-        
-        win.maximize();
+
+        let hasAutoFilled = false;
 
         win.webContents.on('did-finish-load', async () => {
+          if (hasAutoFilled) return;
+
           const autoFillScript = `
-                    (function() {
+                    (async function() {
                         const userSelectors = 'input[type="email"], input[name*="user" i], input[name*="login" i], input[name*="email" i], input[name*="uid" i], input[name*="uname" i], input[id*="user" i], input[id*="login" i], input[id*="email" i], input[id*="uid" i], input[id*="uname" i], input[placeholder*="user" i], input[placeholder*="email" i], input[placeholder*="login" i]';
                         const passSelectors = 'input[type="password"], input[name*="pass" i], input[name*="pwd" i], input[id*="pass" i], input[id*="pwd" i], input[placeholder*="pass" i]';
                         
                         const delay = ms => new Promise(res => setTimeout(res, ms));
                         
-                        async function attemptFill() {
-                            // Give SPAs some time to render
-                            await delay(${delayMs || 3000}); 
-                            
-                            for (let i = 0; i < 5; i++) {
-                                let filledSomething = false;
+                        // Give SPAs some time to render
+                        await delay(${delayMs || 3000}); 
+                        
+                        let didFill = false;
+                        for (let i = 0; i < 5; i++) {
+                            let filledSomething = false;
                                 let currentUsername = ${JSON.stringify(username || '')};
                                 
                                 // Handle Branch Dropdown
@@ -198,14 +218,24 @@ app.whenReady().then(() => {
                                     }
                                 }
 
+                                // Helper to trigger React/Angular internal state updates
+                                const setValue = (element, val) => {
+                                    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+                                    if (nativeInputValueSetter) {
+                                        nativeInputValueSetter.call(element, val);
+                                    } else {
+                                        element.value = val;
+                                    }
+                                    element.dispatchEvent(new Event('input', { bubbles: true }));
+                                    element.dispatchEvent(new Event('change', { bubbles: true }));
+                                };
+
                                 // Fill Username
                                 if (currentUsername) {
                                     const userFields = document.querySelectorAll(userSelectors);
                                     for (const field of userFields) {
                                         if (field.offsetParent !== null) { // is visible
-                                            field.value = currentUsername;
-                                            field.dispatchEvent(new Event('input', { bubbles: true }));
-                                            field.dispatchEvent(new Event('change', { bubbles: true }));
+                                            setValue(field, currentUsername);
                                             filledSomething = true;
                                             break;
                                         }
@@ -217,120 +247,138 @@ app.whenReady().then(() => {
                                     const passFields = document.querySelectorAll(passSelectors);
                                     for (const field of passFields) {
                                         if (field.offsetParent !== null) { // is visible
-                                            field.value = ${JSON.stringify(password || '')};
-                                            field.dispatchEvent(new Event('input', { bubbles: true }));
-                                            field.dispatchEvent(new Event('change', { bubbles: true }));
+                                            setValue(field, ${JSON.stringify(password || '')});
                                             filledSomething = true;
                                             break;
                                         }
                                     }
                                 }
                                 
-                                if (filledSomething) break;
+                                if (filledSomething) {
+                                    didFill = true;
+                                    break;
+                                }
                                 await delay(1000); // Wait and try again if fields weren't found
                             }
-                        }
-                        
-                        attemptFill();
+                            return didFill;
                     })();
                 `;
           try {
-            await win.webContents.executeJavaScript(autoFillScript);
+            const filled = await win.webContents.executeJavaScript(autoFillScript);
+            if (filled) {
+              hasAutoFilled = true; // Prevents auto-fill from running on subsequent pages (like dashboards)
+            }
           } catch (e) {
             console.error("Auto-fill script error:", e);
           }
         });
 
         try {
-            await win.loadURL(link.startsWith('http') ? link : `https://${link}`);
-            return { success: true };
+          await win.loadURL(link.startsWith('http') ? link : `https://${link}`);
+          return { success: true };
         } catch (err) {
-            console.error("Standard Window failed to load URL:", err.message);
-            return { success: false, error: `Could not load page: ${err.message}. Please check if the link is correct or if you have internet access.` };
+          console.error("Standard Window failed to load URL:", err.message);
+          return { success: false, error: `Could not load page: ${err.message}. Please check if the link is correct or if you have internet access.` };
         }
-        }
+      }
 
-        const playwright = require('playwright-core');
-        const browsersList = checkBrowsers();
-        if (browsersList.length === 0) {
-            return { success: false, error: 'No compatible browser found on your system (Chrome, Edge, or Firefox required).' };
-        }
-        const selectedBrowser = browsersList.find(b => b.id === engine) || browsersList[0];
-        
-        let browserType = playwright.chromium;
-        const launchOptions = { headless: false, args: ['--start-maximized'] };
-        
+      const playwright = require('playwright-core');
+      const browsersList = checkBrowsers();
+      if (browsersList.length === 0) {
+        return { success: false, error: 'No compatible browser found on your system (Chrome, Edge, or Firefox required).' };
+      }
+      const selectedBrowser = browsersList.find(b => b.id === engine) || browsersList[0];
+
+      let browserType = playwright.chromium;
+      const launchOptions = { headless: false, args: ['--start-maximized'] };
+
+      if (selectedBrowser.id === 'firefox') {
+        browserType = playwright.firefox;
+      } else {
+        // Chromium/Edge specific anti-detection arguments
+        launchOptions.args.push('--disable-blink-features=AutomationControlled');
+        launchOptions.ignoreDefaultArgs = ['--enable-automation'];
+      }
+
+      launchOptions.executablePath = selectedBrowser.path;
+
+      let context, page;
+
+      if (mode === 'incognito') {
+        const os = require('os');
+        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-incognito-'));
+
         if (selectedBrowser.id === 'firefox') {
-            browserType = playwright.firefox;
+          launchOptions.args.push('--private-window');
+        } else if (selectedBrowser.id === 'edge') {
+          launchOptions.args.push('--inprivate');
         } else {
-            // Chromium/Edge specific anti-detection arguments
-            launchOptions.args.push('--disable-blink-features=AutomationControlled');
-            launchOptions.ignoreDefaultArgs = ['--enable-automation'];
-        }
-        
-        launchOptions.executablePath = selectedBrowser.path;
-
-        let context, page;
-
-        if (mode === 'incognito') {
-            const os = require('os');
-            const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-incognito-'));
-            
-            if (selectedBrowser.id === 'firefox') {
-                launchOptions.args.push('--private-window');
-            } else if (selectedBrowser.id === 'edge') {
-                launchOptions.args.push('--inprivate');
-            } else {
-                launchOptions.args.push('--incognito');
-            }
-            
-            context = await browserType.launchPersistentContext(tempDir, { ...launchOptions, viewport: null, acceptDownloads: true });
-            page = context.pages().length > 0 ? context.pages()[0] : await context.newPage();
-            
-            context.on('close', () => {
-                try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (e) {}
-            });
-        } else {
-            const browser = await browserType.launch(launchOptions);
-            context = await browser.newContext({ viewport: null, acceptDownloads: true });
-            page = await context.newPage();
+          launchOptions.args.push('--incognito');
         }
 
-        // Hide webdriver flag to help bypass government portal bot detection
-        await context.addInitScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
+        context = await browserType.launchPersistentContext(tempDir, { ...launchOptions, viewport: null, acceptDownloads: true });
+        page = context.pages().length > 0 ? context.pages()[0] : await context.newPage();
 
-        // Handle downloads so Playwright doesn't swallow them
-        const handleDownload = async (download) => {
-            try {
-                const originalName = download.suggestedFilename();
-                const ext = path.extname(originalName);
-                const base = path.basename(originalName, ext);
-                const uniqueSuffix = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-                const uniqueName = `${base}_${uniqueSuffix}${ext}`;
-                
-                const downloadPath = path.join(require('os').homedir(), 'Downloads', uniqueName);
-                await download.saveAs(downloadPath);
-                console.log('Downloaded to:', downloadPath);
-                
-                const extLower = ext.toLowerCase();
-                const safeExtensions = ['.pdf', '.xls', '.xlsx', '.csv', '.txt', '.png', '.jpg', '.jpeg', '.zip', '.rar', '.doc', '.docx', '.rtf', '.gif', '.webp', '.bmp'];
-                if (safeExtensions.includes(extLower)) {
-                    require('electron').shell.openPath(downloadPath);
-                } else {
-                    console.log(`Skipped auto-opening ${ext} file for security reasons.`);
-                }
-            } catch (err) {
-                console.error('Download failed:', err);
-            }
-        };
+        context.on('close', () => {
+          try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (e) { }
+        });
+      } else {
+        const browser = await browserType.launch(launchOptions);
+        context = await browser.newContext({ viewport: null, acceptDownloads: true });
+        page = await context.newPage();
+      }
 
-        // Attach download handler to current and future pages
-        context.on('page', p => p.on('download', handleDownload));
-        if (page) page.on('download', handleDownload);
+      // Hide webdriver flag to help bypass government portal bot detection
+      await context.addInitScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
 
+      // Handle downloads so Playwright doesn't swallow them
+      const handleDownload = async (download) => {
         try {
-            await page.goto(link.startsWith('http') ? link : `https://${link}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-        } catch (gotoErr) {
+          const originalName = download.suggestedFilename();
+          const ext = path.extname(originalName);
+          const base = path.basename(originalName, ext);
+          const uniqueSuffix = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+          const uniqueName = `${base}_${uniqueSuffix}${ext}`;
+          
+          const fs = require('fs');
+          const downloadsFolder = app.getPath('downloads');
+          let finalDownloadPath;
+
+          if (fs.existsSync(downloadsFolder)) {
+            finalDownloadPath = path.join(downloadsFolder, uniqueName);
+          } else {
+            // Folder doesn't exist, prompt user for save location
+            const { dialog } = require('electron');
+            const result = await dialog.showSaveDialog({
+              defaultPath: uniqueName,
+              title: 'Save Downloaded File'
+            });
+            if (result.canceled) return;
+            finalDownloadPath = result.filePath;
+          }
+
+          await download.saveAs(finalDownloadPath);
+          console.log('Downloaded to:', finalDownloadPath);
+
+          const extLower = ext.toLowerCase();
+          const safeExtensions = ['.pdf', '.xls', '.xlsx', '.csv', '.txt', '.png', '.jpg', '.jpeg', '.zip', '.rar', '.doc', '.docx', '.rtf', '.gif', '.webp', '.bmp'];
+          if (safeExtensions.includes(extLower)) {
+            require('electron').shell.openPath(finalDownloadPath);
+          } else {
+            console.log(`Skipped auto-opening ${ext} file for security reasons.`);
+          }
+        } catch (err) {
+          console.error('Download failed:', err);
+        }
+      };
+
+      // Attach download handler to current and future pages
+      context.on('page', p => p.on('download', handleDownload));
+      if (page) page.on('download', handleDownload);
+
+      try {
+        await page.goto(link.startsWith('http') ? link : `https://${link}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      } catch (gotoErr) {
         console.log('Goto threw an error (often fine for slow/redirecting portals):', gotoErr.message);
         // If it's a fatal network error or abortion, the page won't load the form. We should abort automation.
         if (gotoErr.message.includes('ERR_') || gotoErr.message.includes('detached')) {
@@ -433,7 +481,7 @@ app.whenReady().then(() => {
           sandbox: true
         }
       });
-      
+
       win.webContents.setWindowOpenHandler((details) => {
         return {
           action: 'allow',
@@ -448,7 +496,7 @@ app.whenReady().then(() => {
           }
         };
       });
-      
+
       win.maximize();
       await win.loadURL(link.startsWith('http') ? link : `https://${link}`);
       return { success: true };
