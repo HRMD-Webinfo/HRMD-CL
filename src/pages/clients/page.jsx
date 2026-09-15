@@ -459,7 +459,7 @@ export default function ClientsPage() {
 
   // API Query States
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(20);
   const [search, setSearch] = useState(() => sessionStorage.getItem('clientSearch') || '');
   
   useEffect(() => {
