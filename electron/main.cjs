@@ -62,6 +62,42 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Global download handler for all default session windows (fixes duplicate download bugs)
+  const { session, shell } = require('electron');
+  session.defaultSession.on('will-download', (event, item, webContents) => {
+    const originalName = item.getFilename();
+    const ext = path.extname(originalName);
+    const base = path.basename(originalName, ext);
+    const uniqueSuffix = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+    const uniqueName = `${base}_${uniqueSuffix}${ext}`;
+    
+    // Close annoying blank popup windows that open when a PDF triggers a force-download in a new tab
+    const win = BrowserWindow.fromWebContents(webContents);
+    if (win && win !== mainWindow) {
+      const url = webContents.getURL();
+      if (!url || url === '' || url === 'about:blank' || url === item.getURL()) {
+        win.close();
+      }
+    }
+
+    const downloadPath = path.join(require('os').homedir(), 'Downloads', uniqueName);
+    item.setSavePath(downloadPath);
+    item.once('done', (event, state) => {
+      if (state === 'completed') {
+        console.log('Downloaded to:', downloadPath);
+        
+        const extLower = ext.toLowerCase();
+        // Open safe files in the PC's default browser/app (e.g., Adobe, Excel, Chrome)
+        const safeExtensions = ['.pdf', '.xls', '.xlsx', '.csv', '.txt', '.png', '.jpg', '.jpeg', '.zip', '.rar', '.doc', '.docx', '.rtf', '.gif', '.webp', '.bmp'];
+        if (safeExtensions.includes(extLower)) {
+          shell.openPath(downloadPath);
+        } else {
+          console.log(`Skipped auto-opening ${ext} file for security reasons.`);
+        }
+      }
+    });
+  });
+
   // Auto Updater Events
   const sendUpdateStatus = (status, progress = null, error = null) => {
     if (mainWindow) {
@@ -105,24 +141,29 @@ app.whenReady().then(() => {
           height: 800,
           autoHideMenuBar: true,
           webPreferences: {
-            plugins: true, // Enables the built-in PDF viewer
+            plugins: false, // Disabled PDF viewer so all PDFs force download to PC
             nodeIntegration: false, // Security: Ensure external sites can't access Node
             contextIsolation: true, // Security: Isolate context
             sandbox: true // Security: Sandbox the external site
           }
         });
-        
-        // Handle downloads similarly to Playwright
-        win.webContents.session.on('will-download', (event, item, webContents) => {
-          const downloadPath = path.join(require('os').homedir(), 'Downloads', item.getFilename());
-          item.setSavePath(downloadPath);
-          item.once('done', (event, state) => {
-            if (state === 'completed') {
-              console.log('Downloaded to:', downloadPath);
-              require('electron').shell.openPath(downloadPath);
+
+        // Handle target="_blank" popups gracefully so they don't look like generic electron windows
+        win.webContents.setWindowOpenHandler((details) => {
+          return {
+            action: 'allow',
+            overrideBrowserWindowOptions: {
+              autoHideMenuBar: true,
+              webPreferences: {
+                plugins: false,
+                nodeIntegration: false,
+                contextIsolation: true,
+                sandbox: true
+              }
             }
-          });
+          };
         });
+        
         win.maximize();
 
         win.webContents.on('did-finish-load', async () => {
@@ -261,11 +302,23 @@ app.whenReady().then(() => {
         // Handle downloads so Playwright doesn't swallow them
         const handleDownload = async (download) => {
             try {
-                const downloadPath = path.join(require('os').homedir(), 'Downloads', download.suggestedFilename());
+                const originalName = download.suggestedFilename();
+                const ext = path.extname(originalName);
+                const base = path.basename(originalName, ext);
+                const uniqueSuffix = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+                const uniqueName = `${base}_${uniqueSuffix}${ext}`;
+                
+                const downloadPath = path.join(require('os').homedir(), 'Downloads', uniqueName);
                 await download.saveAs(downloadPath);
                 console.log('Downloaded to:', downloadPath);
-                // Open the downloaded file directly in the default viewer (usually a browser)
-                require('electron').shell.openPath(downloadPath);
+                
+                const extLower = ext.toLowerCase();
+                const safeExtensions = ['.pdf', '.xls', '.xlsx', '.csv', '.txt', '.png', '.jpg', '.jpeg', '.zip', '.rar', '.doc', '.docx', '.rtf', '.gif', '.webp', '.bmp'];
+                if (safeExtensions.includes(extLower)) {
+                    require('electron').shell.openPath(downloadPath);
+                } else {
+                    console.log(`Skipped auto-opening ${ext} file for security reasons.`);
+                }
             } catch (err) {
                 console.error('Download failed:', err);
             }
@@ -374,11 +427,28 @@ app.whenReady().then(() => {
         height: 800,
         autoHideMenuBar: true,
         webPreferences: {
+          plugins: false,
           nodeIntegration: false,
           contextIsolation: true,
           sandbox: true
         }
       });
+      
+      win.webContents.setWindowOpenHandler((details) => {
+        return {
+          action: 'allow',
+          overrideBrowserWindowOptions: {
+            autoHideMenuBar: true,
+            webPreferences: {
+              plugins: false,
+              nodeIntegration: false,
+              contextIsolation: true,
+              sandbox: true
+            }
+          }
+        };
+      });
+      
       win.maximize();
       await win.loadURL(link.startsWith('http') ? link : `https://${link}`);
       return { success: true };

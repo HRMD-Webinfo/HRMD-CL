@@ -460,7 +460,11 @@ export default function ClientsPage() {
   // API Query States
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => sessionStorage.getItem('clientSearch') || '');
+  
+  useEffect(() => {
+    sessionStorage.setItem('clientSearch', search);
+  }, [search]);
   const [isActiveFilter, setIsActiveFilter] = useState('1');
   const [portalNameFilter, setPortalNameFilter] = useState('');
   const [availablePortals, setAvailablePortals] = useState([]);
