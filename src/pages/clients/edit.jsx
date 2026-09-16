@@ -7,7 +7,7 @@ import AddIcon from '@mui/icons-material/Add';
 export default function EditClientPage() {
   const navigate = useNavigate();
   const { id } = useParams();
-  
+
   const [formData, setFormData] = useState({
     client_name: '',
     content_no: '',
@@ -45,16 +45,16 @@ export default function EditClientPage() {
         if (client.client) client = client.client; // Handles { data: { client: {...} } }
 
         setFormData({
-            client_name: client.client_name || '',
-            content_no: client.content_no || '',
-            content_name: client.content_name || '',
-            email_id: client.email_id || '',
+          client_name: client.client_name || '',
+          content_no: client.content_no || '',
+          content_name: client.content_name || '',
+          email_id: client.email_id || '',
         });
-        
+
         if (client.credentials && client.credentials.length > 0) {
-            setCredentials(client.credentials);
+          setCredentials(client.credentials);
         } else {
-            setCredentials([]);
+          setCredentials([]);
         }
       } else {
         setError('Failed to fetch client data');
@@ -173,7 +173,7 @@ export default function EditClientPage() {
     }
 
     // Filter out credentials without portal_name and username
-    const validCreds = credentials.filter(c => 
+    const validCreds = credentials.filter(c =>
       c.portal_name && c.portal_name.trim() !== '' &&
       (c.username && c.username.trim() !== '')
     );
@@ -209,7 +209,7 @@ export default function EditClientPage() {
   };
 
   if (fetching) {
-      return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading client details...</div>;
+    return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading client details...</div>;
   }
 
   return (
@@ -223,7 +223,7 @@ export default function EditClientPage() {
 
       <form onSubmit={handleSubmit} noValidate style={{ padding: '24px' }}>
         {error && <Box sx={{ color: '#ef4444', mb: 3, p: 2, bgcolor: '#fef2f2', borderRadius: 2, border: '1px solid #fca5a5' }}>{error}</Box>}
-        
+
         <Typography variant="h6" sx={{ color: '#475569', mb: 2 }}>Client Details</Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6}>
@@ -237,7 +237,7 @@ export default function EditClientPage() {
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField label="Email ID" type="email" name="email_id" value={formData.email_id} onChange={handleInputChange} fullWidth size="small" error={!!formErrors.email_id} helperText={formErrors.email_id} />
-          </Grid> 
+          </Grid>
         </Grid>
 
         <Box sx={{ mt: 4, mb: 3, borderTop: '1px solid #e2e8f0', pt: 3 }}>
@@ -247,7 +247,7 @@ export default function EditClientPage() {
               Add Credential
             </Button>
           </Box>
-          
+
           {credentials.length === 0 ? (
             <Typography sx={{ color: '#94a3b8', fontStyle: 'italic', mb: 2 }}>No portal credentials added. Click "Add Credential" to add one.</Typography>
           ) : (
@@ -257,7 +257,7 @@ export default function EditClientPage() {
                 <TextField label="Portal Link (URL)" value={cred.portal_link} onChange={(e) => handleCredentialChange(index, 'portal_link', e.target.value)} fullWidth size="small" />
                 <TextField label="Username" value={cred.username} onChange={(e) => handleCredentialChange(index, 'username', e.target.value)} fullWidth size="small" error={!!formErrors.credentials?.[index]?.username} helperText={formErrors.credentials?.[index]?.username} />
                 <TextField label="Password" value={cred.password} onChange={(e) => handleCredentialChange(index, 'password', e.target.value)} fullWidth size="small" />
-                
+
                 <IconButton onClick={() => removeCredential(index)} color="error" size="small">
                   <DeleteIcon />
                 </IconButton>

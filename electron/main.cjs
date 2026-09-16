@@ -1,8 +1,13 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { autoUpdater } = require("electron-updater");
 
+// Global error handler to catch uncaught exceptions and prevent sudden silent crashes
+process.on('uncaughtException', (error) => {
+  console.error('Unhandled Error:', error);
+  dialog.showErrorBox('An unexpected error occurred', error.message || 'Unknown Error');
+});
 function checkBrowsers() {
   const browsers = [];
 
@@ -42,6 +47,7 @@ function createWindow() {
     height: 800,
     minWidth: 800, // Prevent window from getting too small
     minHeight: 600,
+    show: false,
     autoHideMenuBar: true, // Hides the File, Edit, View menu bar
     icon: path.join(__dirname, app.isPackaged ? '../dist/logo/half-logo.png' : '../public/logo/half-logo.png'),
     webPreferences: {
@@ -59,6 +65,10 @@ function createWindow() {
   } else {
     mainWindow.loadURL("http://localhost:5173");
   }
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
 }
 
 app.whenReady().then(() => {
@@ -154,6 +164,7 @@ app.whenReady().then(() => {
         const win = new BrowserWindow({
           width: 1200,
           height: 800,
+          show: false,
           autoHideMenuBar: true,
           webPreferences: {
             plugins: false, // Disabled PDF viewer so all PDFs force download to PC
@@ -162,6 +173,8 @@ app.whenReady().then(() => {
             sandbox: true // Security: Sandbox the external site
           }
         });
+
+        win.maximize();
 
         // Spoof user agent to prevent government portals from blocking Electron and disabling forms
         win.webContents.userAgent = win.webContents.userAgent.replace(/Electron\/[0-9\.]+ /, '');
@@ -182,6 +195,10 @@ app.whenReady().then(() => {
           };
         });
 
+        win.webContents.on('did-create-window', (childWindow) => {
+          childWindow.maximize();
+        });
+
         let hasAutoFilled = false;
 
         win.webContents.on('did-finish-load', async () => {
@@ -191,6 +208,7 @@ app.whenReady().then(() => {
                     (async function() {
                         const userSelectors = 'input[type="email"], input[name*="user" i], input[name*="login" i], input[name*="email" i], input[name*="uid" i], input[name*="uname" i], input[id*="user" i], input[id*="login" i], input[id*="email" i], input[id*="uid" i], input[id*="uname" i], input[placeholder*="user" i], input[placeholder*="email" i], input[placeholder*="login" i]';
                         const passSelectors = 'input[type="password"], input[name*="pass" i], input[name*="pwd" i], input[id*="pass" i], input[id*="pwd" i], input[placeholder*="pass" i]';
+                        const captchaSelectors = 'input[name*="captcha" i], input[id*="captcha" i], input[placeholder*="captcha" i], input[name*="security" i], input[id*="security" i]';
                         
                         const delay = ms => new Promise(res => setTimeout(res, ms));
                         
@@ -254,6 +272,17 @@ app.whenReady().then(() => {
                                     }
                                 }
                                 
+                                // Focus Captcha
+                                await delay(300); // Wait for React/Angular to finish re-rendering after username/password is set
+                                const captchaFields = document.querySelectorAll(captchaSelectors);
+                                for (const field of captchaFields) {
+                                    if (field.offsetParent !== null) { // is visible
+                                        field.focus();
+                                        field.click();
+                                        break;
+                                    }
+                                }
+                                
                                 if (filledSomething) {
                                     didFill = true;
                                     break;
@@ -275,6 +304,7 @@ app.whenReady().then(() => {
 
         try {
           await win.loadURL(link.startsWith('http') ? link : `https://${link}`);
+          win.once('ready-to-show', () => { win.show(); });
           return { success: true };
         } catch (err) {
           console.error("Standard Window failed to load URL:", err.message);
@@ -458,7 +488,29 @@ app.whenReady().then(() => {
         }
       }
 
-
+      // Focus Captcha
+      try {
+        await new Promise(r => setTimeout(r, 300)); // Wait for SPA re-render
+        const captchaSelectors = [
+          'input[name*="captcha" i]',
+          'input[id*="captcha" i]',
+          'input[placeholder*="captcha" i]',
+          'input[name*="security" i]',
+          'input[id*="security" i]'
+        ].join(', ');
+        
+        const captchaFields = page.locator(captchaSelectors);
+        const captchaCount = await captchaFields.count();
+        for (let i = 0; i < captchaCount; i++) {
+          if (await captchaFields.nth(i).isVisible()) {
+            await captchaFields.nth(i).focus();
+            await captchaFields.nth(i).click();
+            break;
+          }
+        }
+      } catch (e) {
+        console.log("Captcha focus skipped:", e.message);
+      }
 
       return { success: true };
     } catch (e) {
@@ -473,6 +525,7 @@ app.whenReady().then(() => {
       const win = new BrowserWindow({
         width: 1200,
         height: 800,
+        show: false,
         autoHideMenuBar: true,
         webPreferences: {
           plugins: false,
@@ -497,8 +550,13 @@ app.whenReady().then(() => {
         };
       });
 
+      win.webContents.on('did-create-window', (childWindow) => {
+        childWindow.maximize();
+      });
+
       win.maximize();
       await win.loadURL(link.startsWith('http') ? link : `https://${link}`);
+      win.once('ready-to-show', () => { win.show(); });
       return { success: true };
     } catch (e) {
       console.error("BrowserWindow launch error:", e);
@@ -507,4 +565,13 @@ app.whenReady().then(() => {
   });
 
   createWindow();
+});
+
+// Quit when all windows are closed, except on macOS. There, it's common
+// for applications and their menu bar to stay active until the user quits
+// explicitly with Cmd + Q.
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
 });

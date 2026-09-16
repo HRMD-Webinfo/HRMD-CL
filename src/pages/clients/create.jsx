@@ -6,7 +6,7 @@ import AddIcon from '@mui/icons-material/Add';
 
 export default function CreateClientPage() {
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
     client_name: '',
     content_no: '',
@@ -128,7 +128,7 @@ export default function CreateClientPage() {
     }
 
     // Do not add credentials if username or password is missing / empty
-    const validCreds = credentials.filter(c => 
+    const validCreds = credentials.filter(c =>
       c.portal_name && c.portal_name.trim() !== '' &&
       (c.username && c.username.trim() !== '')
     );
@@ -138,7 +138,7 @@ export default function CreateClientPage() {
       const payload = {
         ...formData,
         credentials: validCreds
-      }; 
+      };
 
       const response = await fetch('/api/clients', {
         method: 'POST',
@@ -164,7 +164,7 @@ export default function CreateClientPage() {
 
   return (
     <Paper sx={{ maxWidth: '800px', margin: '0 auto', overflow: 'hidden', borderRadius: 3, boxShadow: 3 }}>
-      
+
       <Box sx={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h5" sx={{ margin: 0, color: '#1e293b', fontWeight: 600 }}>New Client</Typography>
         <Button onClick={() => navigate('/clients')} color="inherit" sx={{ textTransform: 'none', color: '#64748b' }}>
@@ -174,7 +174,7 @@ export default function CreateClientPage() {
 
       <form onSubmit={handleSubmit} noValidate style={{ padding: '24px' }}>
         {error && <Box sx={{ color: '#ef4444', mb: 3, p: 2, bgcolor: '#fef2f2', borderRadius: 2, border: '1px solid #fca5a5' }}>{error}</Box>}
-        
+
         <Typography variant="h6" sx={{ color: '#475569', mb: 2 }}>Client Details</Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6}>
@@ -221,7 +221,7 @@ export default function CreateClientPage() {
                 <TextField label="Portal Link (URL)" value={cred.portal_link} onChange={(e) => handleCredentialChange(index, 'portal_link', e.target.value)} fullWidth size="small" />
                 <TextField label="Username" value={cred.username} onChange={(e) => handleCredentialChange(index, 'username', e.target.value)} fullWidth size="small" error={!!formErrors.credentials?.[index]?.username} helperText={formErrors.credentials?.[index]?.username} />
                 <TextField label="Password" value={cred.password} onChange={(e) => handleCredentialChange(index, 'password', e.target.value)} fullWidth size="small" />
-                
+
                 <IconButton onClick={() => removeCredential(index)} color="error" size="small">
                   <DeleteIcon />
                 </IconButton>

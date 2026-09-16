@@ -5,7 +5,7 @@ import { Box, Button, TextField, Typography, Paper, Grid } from '@mui/material';
 export default function ViewClientPage() {
   const navigate = useNavigate();
   const { id } = useParams();
-  
+
   const [formData, setFormData] = useState({
     client_name: '',
     content_no: '',
@@ -32,20 +32,20 @@ export default function ViewClientPage() {
       });
       if (response.ok) {
         const result = await response.json();
-        
+
         let client = result;
         if (result.data) client = result.data;
         if (client.client) client = client.client;
 
         setFormData({
-            client_name: client.client_name || '',
-            content_no: client.content_no || '',
-            content_name: client.content_name || '',
-            email_id: client.email_id || '',
+          client_name: client.client_name || '',
+          content_no: client.content_no || '',
+          content_name: client.content_name || '',
+          email_id: client.email_id || '',
         });
-        
+
         if (client.credentials && client.credentials.length > 0) {
-            setCredentials(client.credentials);
+          setCredentials(client.credentials);
         }
       } else {
         setError('Failed to fetch client data');
@@ -58,7 +58,7 @@ export default function ViewClientPage() {
   };
 
   if (fetching) {
-      return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading client details...</div>;
+    return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading client details...</div>;
   }
 
   return (
@@ -72,7 +72,7 @@ export default function ViewClientPage() {
 
       <Box sx={{ padding: '24px' }}>
         {error && <Box sx={{ color: '#ef4444', mb: 3, p: 2, bgcolor: '#fef2f2', borderRadius: 2, border: '1px solid #fca5a5' }}>{error}</Box>}
-        
+
         <Typography variant="h6" sx={{ color: '#475569', mb: 2 }}>Client Details</Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6}>
@@ -91,9 +91,9 @@ export default function ViewClientPage() {
 
         <Box sx={{ mt: 4, mb: 3, borderTop: '1px solid #e2e8f0', pt: 3 }}>
           <Typography variant="h6" sx={{ color: '#475569', mb: 2 }}>Portal Credentials</Typography>
-          
+
           {credentials.length === 0 ? (
-             <Typography sx={{ color: '#94a3b8', fontStyle: 'italic' }}>No credentials found for this client.</Typography>
+            <Typography sx={{ color: '#94a3b8', fontStyle: 'italic' }}>No credentials found for this client.</Typography>
           ) : (
             credentials.map((cred, index) => (
               <Box key={index} sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, bgcolor: '#f8fafc', p: 2, borderRadius: 2, border: '1px solid #e2e8f0' }}>
