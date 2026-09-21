@@ -77,7 +77,7 @@ export default function UpdateDialog() {
         )}
 
         {status === 'error' && (
-          <Typography color="error">
+          <Typography color="error" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
             {errorMsg || 'An unknown error occurred while updating.'}
           </Typography>
         )}

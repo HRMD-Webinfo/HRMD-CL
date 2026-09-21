@@ -373,7 +373,23 @@ app.whenReady().then(() => {
   });
 
   autoUpdater.on('error', (err) => {
-    sendUpdateStatus('error', null, err == null ? "unknown" : (err.stack || err).toString());
+    let friendlyMessage = "An unknown error occurred while updating.";
+    const errString = err == null ? "unknown" : (err.stack || err).toString().toLowerCase();
+
+    if (errString.includes('net::err_internet_disconnected') || errString.includes('network error') || errString.includes('econnreset') || errString.includes('enotfound')) {
+      friendlyMessage = "Network Error: Please check your internet connection.";
+    } else if (errString.includes('enoent') || errString.includes('eacces') || errString.includes('eperm')) {
+      friendlyMessage = "Permission Error: Could not save the update. Try running the app as Administrator.";
+    } else if (errString.includes('timeout')) {
+      friendlyMessage = "Timeout: The update download took too long. Please check your connection.";
+    } else if (errString.includes('invalid') || errString.includes('corrupt') || errString.includes('sha512')) {
+      friendlyMessage = "Corrupted Download: The update file was invalid. Please restart the app to try again.";
+    } else {
+      friendlyMessage = `Update Error: ${err ? err.message : 'Unknown'}. Check logs for details.`;
+    }
+
+    console.error('AutoUpdater Error:', err); // Still log the real error for debugging
+    sendUpdateStatus('error', null, friendlyMessage);
   });
 
   ipcMain.handle('install-update', () => {
